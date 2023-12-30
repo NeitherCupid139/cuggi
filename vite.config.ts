@@ -16,7 +16,11 @@ export default defineConfig({
         theme_color: '#ffffff', // 主题颜色
         icons: [
           // 应用程序图标配置
-          
+          {
+            src: '/favicon192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
           {
             src: '/favicon512.png',
             sizes: '512x512',
@@ -24,6 +28,7 @@ export default defineConfig({
           },
         ],
       },
+      injectRegister: 'auto',
       registerType: 'autoUpdate', // 注册类型配置
       devOptions: {
         enabled: true, // 开发选项配置，启用插件
