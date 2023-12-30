@@ -17,12 +17,12 @@ export default defineConfig({
         icons: [
           // 应用程序图标配置
           {
-            src: '/assets/favicon128.png', // 图标路径
+            src: 'assets/favicon128.png', // 图标路径
             sizes: '128x128', // 图标尺寸
             type: 'image/png', // 图标类型
           },
           {
-            src: '/assets/favicon512.png',
+            src: 'assets/favicon512.png',
             sizes: '512x512',
             type: 'image/png',
           },
