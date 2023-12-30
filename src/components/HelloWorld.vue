@@ -2,7 +2,7 @@
   <RouterLink to="./about">❔</RouterLink>
   <h3>考研词汇</h3>
   <p>{{ index + "/" + msg.length }}</p>
-  <h1 class="" v-show="bool">正确😊</h1>
+  <h3 class="" v-show="bool">正确😊</h3>
   <div class="flex flex-col justify-center">
     <div>
       <h2>{{ msg[index].ch }}</h2>
@@ -159,7 +159,7 @@ let msg: {
 let index = ref<number>(0);
 
 watch(youinput, (newVal) => {
-  if (newVal === msg[index.value].eng) {
+  if (newVal.trim() === msg[index.value].eng) {
     bool.value = true;
   } else {
     bool.value = false;
