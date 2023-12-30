@@ -16,11 +16,7 @@ export default defineConfig({
         theme_color: '#ffffff', // 主题颜色
         icons: [
           // 应用程序图标配置
-          {
-            src: '/favicon128.png', // 图标路径
-            sizes: '128x128', // 图标尺寸
-            type: 'image/png', // 图标类型
-          },
+          
           {
             src: '/favicon512.png',
             sizes: '512x512',
