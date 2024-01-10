@@ -1,6 +1,5 @@
 <template>
   <!-- Open the modal using ID.showModal() method -->
-  <button class="btn hidden">open modal</button>
   <dialog
     ref="firstModal"
     id="firstModal"
@@ -27,10 +26,19 @@
           class="range"
         />
       </div>
+      <div v-if="display[2]">
+        <h3 class="font-bold text-lg">开始吧</h3>
+        <p class="py-4 sm:hidden">
+          对于手机用户，可以点击右下角的按钮添加到主屏幕，这样就可以像使用APP一样使用了
+        </p>
+      </div>
 
       <div class="modal-action">
         <button v-if="!display[2]" @click="toDisplay" class="btn mr-2">
           下一个
+        </button>
+        <button class="btn" @click="promptToAddToHomeScreen">
+          添加到主屏幕
         </button>
 
         <form method="dialog">
@@ -47,6 +55,13 @@ const firstModal = ref(null || HTMLElement);
 const display = ref([true, false, false]);
 const index = ref(0);
 const counts = ref(15);
+const question = ref([
+  {
+    que: "什么是构件",
+    ans: "构件是指语义完整、语法正确、有可重用价值的单位软件，是软件重用过程中可以明确辨识的系统。",
+  },
+  {},
+]);
 
 onMounted(() => {
   (firstModal.value as any).showModal();
@@ -61,4 +76,27 @@ function toDisplay() {
   }
   display.value[index.value] = true;
 }
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  // 阻止默认提示行为，保存事件供稍后使用
+  e.preventDefault();
+  deferredPrompt = e;
+});
+
+const promptToAddToHomeScreen = () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === "accepted") {
+        console.log("用户添加了PWA到主屏幕");
+      } else {
+        console.log("用户拒绝将PWA添加到主屏幕");
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    console.log("没有可用的添加到主屏幕的提示");
+  }
+};
 </script>
