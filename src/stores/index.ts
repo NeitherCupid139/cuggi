@@ -7,7 +7,7 @@ import { ref } from 'vue'
 export const useCounterStore = defineStore('counter', () => {
     const firstShow = ref(true);
     const count = ref(20);
-    const head=ref(0);
+
 
 
     function notInitial() {
