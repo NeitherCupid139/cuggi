@@ -17,11 +17,11 @@ export const useCounterStore = defineStore('counter', () => {
     return { firstShow,count,notInitial}
     
   },
-  {
-    persist: {
-      enabled: true, //Store中数据持久化生效
-    },
-  }
+  // {
+  //   persist: {
+  //     enabled: true, //Store中数据持久化生效
+  //   },
+  // }
   )
 
 
