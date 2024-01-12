@@ -15,35 +15,44 @@
         <p class="py-4">
           你想每天背多少单词呢?😎
           <span class="countdown">
-            <span :style="{ '--value': counts }"></span>
+            <span :style="{ '--value': count }"></span>
           </span>
         </p>
         <input
           type="range"
           min="1"
           max="80"
-          v-model.lazy="counts"
+          v-model.lazy="count"
           class="range"
         />
       </div>
       <div v-if="display[2]">
         <h3 class="font-bold text-lg">开始吧</h3>
+        <p class="py-4 hidden sm:block">
+          对于PC用户，点击下方的按钮<kbd class="kbd mx-2">安装PWA应用</kbd
+          >就可以把这个小玩具安装到你的电脑上了
+        </p>
         <p class="py-4 sm:hidden">
-          对于手机用户，可以点击右下角的按钮添加到主屏幕，这样就可以像使用APP一样使用了
+          对于IOS/IPadOS用户，使用Safari浏览器，点击<kbd class="kbd mx-2"
+            >分享</kbd
+          >按钮，选择<kbd class="kbd mx-2">添加到主屏幕</kbd>
+          就可以把这个小玩具安装到你的设备上了
         </p>
       </div>
 
       <div class="modal-action">
+        <!-- change to next modal -->
         <button v-if="!display[2]" @click="toDisplay" class="btn mr-2">
           下一个
         </button>
-        <button class="btn" @click="promptToAddToHomeScreen">
-          添加到主屏幕
+        <!-- install PWA app -->
+        <button v-if="a2hsBtn" class="btn" @click="promptToAddToHomeScreen">
+          安装PWA应用
         </button>
-
+        <!-- close modal -->
         <form method="dialog">
           <!-- if there is a button in form, it will close the modal -->
-          <button class="btn">关闭</button>
+          <button class="btn" @click="store.notInitial">关闭</button>
         </form>
       </div>
     </div>
@@ -51,37 +60,42 @@
 </template>
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useCounterStore } from "../stores/index";
+import { storeToRefs } from "pinia";
 const firstModal = ref(null || HTMLElement);
 const display = ref([true, false, false]);
 const index = ref(0);
-const counts = ref(15);
+const store = useCounterStore();
+const counts = storeToRefs(store);
+const count = counts.count;
+const firstShow = counts.firstShow.value;
 
+const a2hsBtn = ref(true);
 let deferredPrompt: any | null = null;
 
+// init
 onMounted(() => {
-  (firstModal.value as any).showModal();
+  if (!firstShow) {
+    (firstModal.value as any).close();
+  } else {
+    (firstModal.value as any).showModal();
+  }
   window.addEventListener("beforeinstallprompt", (e: any) => {
     e.preventDefault();
     deferredPrompt = e;
   });
+  if (checkPWAInstalled() || checkDeviceType() == "mobile") {
+    a2hsBtn.value = false;
+  }
 });
+// add to home screen
 function promptToAddToHomeScreen() {
   if (deferredPrompt) {
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(
-      (choiceResult: PromiseRejectionEvent | any) => {
-        if (choiceResult.outcome === "accepted") {
-          console.log("用户添加了PWA到主屏幕");
-        } else {
-          console.log("用户拒绝将PWA添加到主屏幕");
-        }
-        deferredPrompt = null;
-      }
-    );
-  } else {
-    console.log("没有可用的添加到主屏幕的提示");
   }
 }
+
+// display
 function toDisplay() {
   index.value++;
   if (index.value == 3) {
@@ -91,5 +105,15 @@ function toDisplay() {
     display.value[i] = false;
   }
   display.value[index.value] = true;
+}
+// chcek if PWA installed
+function checkPWAInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches;
+}
+// check device type(web or mobile)
+function checkDeviceType() {
+  return window.matchMedia("(display-mode: standalone)").matches
+    ? "mobile"
+    : "web";
 }
 </script>
