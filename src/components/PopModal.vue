@@ -60,7 +60,7 @@
 </template>
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useCounterStore } from "../stores/index";
+import { useCounterStore } from "../stores/count";
 import { storeToRefs } from "pinia";
 const firstModal = ref(null || HTMLElement);
 const display = ref([true, false, false]);

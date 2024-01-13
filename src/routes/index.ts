@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 
 import HomePageVue from '../pages/HomePage.vue';
+import SettingPageVue from '../pages/SettingPage.vue';
+import StatusPageVue from '../pages/StatusPage.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -10,6 +12,14 @@ const router = createRouter({
     {
       path: '/',
       component:HomePageVue,
+    },
+    {
+      path: '/settings',
+      component:SettingPageVue,
+    },
+    {
+      path:'/status',
+      component:StatusPageVue,
     }
    
   ],

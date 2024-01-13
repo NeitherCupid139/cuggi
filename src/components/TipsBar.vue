@@ -3,7 +3,7 @@
     v-if="type === 'success'"
     v-motion-pop
     role="alert"
-    class="alert alert-success place-content-center"
+    class="alert alert-success place-content-center absolute"
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -25,7 +25,7 @@
     v-if="type == 'error'"
     v-motion-pop
     role="alert"
-    class="alert alert-error"
+    class="alert alert-error absolute"
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"

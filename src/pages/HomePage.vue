@@ -1,12 +1,24 @@
 <template>
-  <PopModal></PopModal>
+  <PopModal v-if="useCounterStore().firstShow"></PopModal>
   <TipsBar :type="correct"></TipsBar>
-  <div class="w-full h-screen flex justify-center items-center">
-    <div class="flex flex-col w-1/2 border-opacity-50">
+  <div
+    @touchmove.prevent
+    class="w-full h-screen flex justify-center items-center"
+  >
+    <div class="w-2/3 flex flex-col border-opacity-50">
+      <label class="swap swap-flip text-3xl">
+        <!-- this hidden checkbox controls the state -->
+        <input @click="tips = !tips" type="checkbox" />
+
+        <div class="swap-on">😈</div>
+        <div class="swap-off">😇</div>
+      </label>
+
       <div class="grid h-20 card bg-base-300 rounded-box place-items-center">
-        {{ words[index].word }}
+        {{ tips ? words[index].word : words[index].des }}
       </div>
-      <div class="divider">{{ index }}</div>
+
+      <div class="divider">{{ index + 1 }}</div>
       <div class="grid h-20 card bg-base-300 rounded-box place-items-center">
         <input
           v-model="inputVal"
@@ -15,75 +27,41 @@
           class="input input-bordered w-full max-w-xs"
         />
       </div>
-      <div>
+      <div class="my-4">
         <button @click="next" class="btn">下一个</button>
         <button @click="check" class="btn">检查</button>
+        <button @click="play" class="btn">》</button>
+        <button @click="stop" class="btn">X</button>
+        <div v-if="isSupported">
+          <button @click="show()" class="btn">msg</button>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="btm-nav">
-    <button>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-        />
-      </svg>
-    </button>
-    <button class="active">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-    </button>
-    <button>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-        />
-      </svg>
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watchEffect } from "vue";
 import PopModal from "../components/PopModal.vue";
 import axios from "axios";
 import TipsBar from "../components/TipsBar.vue";
-import { useCounterStore } from "../stores/index";
+import { useCounterStore } from "../stores/count";
+import { useSpeechSynthesis } from "@vueuse/core";
+import { useWebNotification } from "@vueuse/core";
+import type { UseWebNotificationOptions } from "@vueuse/core";
+
+const options: UseWebNotificationOptions = {
+  title: "今天的单词已经学完了，继续保持哦！👍",
+  dir: "auto",
+  lang: "zh",
+  renotify: true,
+  tag: "test",
+};
+const { isSupported, show } = useWebNotification(options);
 const inputVal = ref("");
 const correct = ref<"success" | "error" | "">("");
-
-// const globalIndex = ref(0);
-const index = ref(1);
+const tips = ref<boolean>(false);
+const index = ref(0);
 const words = ref<
   {
     word: string;
@@ -94,25 +72,99 @@ const words = ref<
   {
     word: "hello",
     pron: "həˈloʊ",
-    des: "你好",
+    des: "",
   },
   {
     word: "hello",
     pron: "həˈloʊ",
-    des: "你好",
+    des: "",
   },
 ]);
-onMounted(() => {
-  // get data from local json file
-  axios.get("/words.json").then((res) => {
-    words.value = JSON.parse(JSON.stringify(res.data));
-  });
+
+const voice = ref<SpeechSynthesisVoice>(
+  undefined as unknown as SpeechSynthesisVoice
+);
+let text = ref("");
+watchEffect(() => {
+  text.value = words.value[index.value].word;
 });
-function next() {
-  if (index.value > useCounterStore().count) {
-    index.value = 0;
+const pitch = ref(1);
+const rate = ref(1);
+
+const speech = useSpeechSynthesis(text, {
+  voice,
+  pitch,
+  rate,
+});
+
+let synth: SpeechSynthesis;
+
+const voices = ref<SpeechSynthesisVoice[]>([]);
+
+function play() {
+  if (speech.status.value === "pause") {
+    console.log("resume");
+    window.speechSynthesis.resume();
+  } else {
+    speech.speak();
   }
-  index.value++;
+}
+
+function stop() {
+  speech.stop();
+}
+
+onMounted(() => {
+  let beginIndex = useCounterStore().beginIndex;
+  let count = useCounterStore().count;
+  // get data from local json file
+  async function getData() {
+    const res = await axios.get("/words.json");
+    words.value = JSON.parse(JSON.stringify(res.data)).slice(
+      beginIndex,
+      beginIndex + count
+    );
+  }
+  getData();
+  if (useCounterStore().lastTime === 0) {
+    useCounterStore().lastTime = new Date().getTime();
+  }
+
+  let diffDay: number = daysBetweenTimestamps(
+    new Date().getTime(),
+    useCounterStore().lastTime
+  );
+  if (diffDay >= 1) {
+    useCounterStore().changeIndex(diffDay);
+    useCounterStore().lastTime = new Date().getTime();
+  }
+
+  if (speech.isSupported.value) {
+    // load at last
+    setTimeout(() => {
+      synth = window.speechSynthesis;
+      voices.value = synth.getVoices();
+      voice.value = voices.value[0];
+    });
+  }
+});
+
+function daysBetweenTimestamps(startTime: number, endTime: number) {
+  var differenceInMilliseconds = Math.abs(endTime - startTime);
+  var differenceInDays = Math.floor(
+    differenceInMilliseconds / (1000 * 60 * 60 * 24)
+  );
+
+  return differenceInDays;
+}
+
+function next() {
+  if (index.value >= useCounterStore().count) {
+    show();
+    useCounterStore().lastTime = new Date().getTime();
+  } else {
+    index.value++;
+  }
 }
 function check() {
   if (inputVal.value === words.value[index.value].word) {

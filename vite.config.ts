@@ -9,8 +9,8 @@ export default defineConfig({
   plugins: [vue(),
     VitePWA({
       manifest: {
-        name: 'words=>world', // 应用程序名称
-        short_name: 'words=>world', // 应用程序简称
+        name: "速记", // 应用程序名称
+        short_name: "cug'gi", // 应用程序简称
         description: 'Creed Web App', // 应用程序描述
         theme_color: '#ffffff', // 主题颜色
         icons: [
