@@ -60,8 +60,10 @@
 </template>
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useCounterStore } from "../stores/count";
+import { useCounterStore } from "@/stores/count";
 import { storeToRefs } from "pinia";
+import { deviceDetector } from "@/utils/deviceDetector";
+
 const firstModal = ref(null || HTMLElement);
 const display = ref([true, false, false]);
 const index = ref(0);
@@ -69,12 +71,12 @@ const store = useCounterStore();
 const counts = storeToRefs(store);
 const count = counts.count;
 const firstShow = counts.firstShow.value;
-
 const a2hsBtn = ref(true);
 let deferredPrompt: any | null = null;
 
-// init
+// 初始化
 onMounted(() => {
+  // 判断是是否需要弹窗
   if (!firstShow) {
     (firstModal.value as any).close();
   } else {
@@ -84,18 +86,18 @@ onMounted(() => {
     e.preventDefault();
     deferredPrompt = e;
   });
-  if (checkPWAInstalled() || checkDeviceType() == "mobile") {
+  if (checkPWAInstalled() || deviceDetector() == "mobile") {
     a2hsBtn.value = false;
   }
 });
-// add to home screen
+// 显示添加到主屏幕
 function promptToAddToHomeScreen() {
   if (deferredPrompt) {
     deferredPrompt.prompt();
   }
 }
 
-// display
+// 显示弹窗内容
 function toDisplay() {
   index.value++;
   if (index.value == 3) {
@@ -106,14 +108,8 @@ function toDisplay() {
   }
   display.value[index.value] = true;
 }
-// chcek if PWA installed
+// 检测PWA应用是否已经安装
 function checkPWAInstalled() {
   return window.matchMedia("(display-mode: standalone)").matches;
-}
-// check device type(web or mobile)
-function checkDeviceType() {
-  return window.matchMedia("(display-mode: standalone)").matches
-    ? "mobile"
-    : "web";
 }
 </script>

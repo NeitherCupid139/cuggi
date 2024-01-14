@@ -13,6 +13,19 @@
         <div class="swap-on">😈</div>
         <div class="swap-off">😇</div>
       </label>
+      <span @click="speech.play()">
+        <svg
+          class="swap-on fill-current"
+          xmlns="http://www.w3.org/2000/svg"
+          width="48"
+          height="48"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"
+          />
+        </svg>
+      </span>
 
       <div class="grid h-20 card bg-base-300 rounded-box place-items-center">
         {{ tips ? words[index].word : words[index].des }}
@@ -27,41 +40,31 @@
           class="input input-bordered w-full max-w-xs"
         />
       </div>
-      <div class="my-4">
+      <div class="my-4 flex justify-between">
+        <button @click="back" class="btn">上一个</button>
         <button @click="next" class="btn">下一个</button>
         <button @click="check" class="btn">检查</button>
-        <button @click="play" class="btn">》</button>
-        <button @click="stop" class="btn">X</button>
-        <div v-if="isSupported">
-          <button @click="show()" class="btn">msg</button>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect } from "vue";
-import PopModal from "../components/PopModal.vue";
-import axios from "axios";
-import TipsBar from "../components/TipsBar.vue";
-import { useCounterStore } from "../stores/count";
-import { useSpeechSynthesis } from "@vueuse/core";
-import { useWebNotification } from "@vueuse/core";
-import type { UseWebNotificationOptions } from "@vueuse/core";
+import { onMounted, ref } from "vue";
+import PopModal from "@/components/PopModal.vue";
 
-const options: UseWebNotificationOptions = {
-  title: "今天的单词已经学完了，继续保持哦！👍",
-  dir: "auto",
-  lang: "zh",
-  renotify: true,
-  tag: "test",
-};
-const { isSupported, show } = useWebNotification(options);
+import TipsBar from "@/components/TipsBar.vue";
+import axios from "axios";
+import { useCounterStore } from "@/stores/count";
+import { speechVoice } from "@/utils/speechVoice";
+import { showNotification } from "@/utils/notification";
+
 const inputVal = ref("");
 const correct = ref<"success" | "error" | "">("");
 const tips = ref<boolean>(false);
 const index = ref(0);
+const speech = new speechVoice();
+
 const words = ref<
   {
     word: string;
@@ -74,58 +77,24 @@ const words = ref<
     pron: "həˈloʊ",
     des: "",
   },
-  {
-    word: "hello",
-    pron: "həˈloʊ",
-    des: "",
-  },
 ]);
-
-const voice = ref<SpeechSynthesisVoice>(
-  undefined as unknown as SpeechSynthesisVoice
-);
-let text = ref("");
-watchEffect(() => {
-  text.value = words.value[index.value].word;
-});
-const pitch = ref(1);
-const rate = ref(1);
-
-const speech = useSpeechSynthesis(text, {
-  voice,
-  pitch,
-  rate,
-});
-
-let synth: SpeechSynthesis;
-
-const voices = ref<SpeechSynthesisVoice[]>([]);
-
-function play() {
-  if (speech.status.value === "pause") {
-    console.log("resume");
-    window.speechSynthesis.resume();
-  } else {
-    speech.speak();
-  }
-}
-
-function stop() {
-  speech.stop();
-}
 
 onMounted(() => {
   let beginIndex = useCounterStore().beginIndex;
   let count = useCounterStore().count;
-  // get data from local json file
-  async function getData() {
-    const res = await axios.get("/words.json");
-    words.value = JSON.parse(JSON.stringify(res.data)).slice(
-      beginIndex,
-      beginIndex + count
-    );
+  const res = axios.get("/words.json");
+  async function operate() {
+    await res.then((response) => {
+      words.value = JSON.parse(JSON.stringify(response.data)).slice(
+        beginIndex,
+        beginIndex + count
+      );
+    });
+    speech.initSpeech();
+    speech.setText(words.value[index.value].word);
   }
-  getData();
+  operate();
+
   if (useCounterStore().lastTime === 0) {
     useCounterStore().lastTime = new Date().getTime();
   }
@@ -135,17 +104,9 @@ onMounted(() => {
     useCounterStore().lastTime
   );
   if (diffDay >= 1) {
+    useCounterStore().notified = false;
     useCounterStore().changeIndex(diffDay);
     useCounterStore().lastTime = new Date().getTime();
-  }
-
-  if (speech.isSupported.value) {
-    // load at last
-    setTimeout(() => {
-      synth = window.speechSynthesis;
-      voices.value = synth.getVoices();
-      voice.value = voices.value[0];
-    });
   }
 });
 
@@ -159,12 +120,22 @@ function daysBetweenTimestamps(startTime: number, endTime: number) {
 }
 
 function next() {
-  if (index.value >= useCounterStore().count) {
-    show();
-    useCounterStore().lastTime = new Date().getTime();
-  } else {
+  if (index.value < useCounterStore().count - 1) {
     index.value++;
+  } else {
+    showNotification("今日单词已背完");
+    useCounterStore().notified = true;
+    useCounterStore().lastTime = new Date().getTime();
   }
+  inputVal.value = "";
+  speech.setText(words.value[index.value].word);
+}
+function back() {
+  if (index.value > 0) {
+    index.value--;
+  }
+  inputVal.value = "";
+  speech.setText(words.value[index.value].word);
 }
 function check() {
   if (inputVal.value === words.value[index.value].word) {
