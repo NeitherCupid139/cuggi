@@ -26,9 +26,6 @@ const speech = useSpeechSynthesis(text, {
   volume: 1,
 });
 
-// 语音合成器
-let synth: SpeechSynthesis;
-
 export class speechVoice {
   // 设置语音合成器需要的文本
   public setText(newVal: string) {
@@ -38,7 +35,7 @@ export class speechVoice {
   public initSpeech() {
     if (speech.isSupported.value) {
       setTimeout(() => {
-        synth = window.speechSynthesis;
+        window.speechSynthesis;
       });
     }
   }
