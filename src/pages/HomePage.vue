@@ -7,7 +7,6 @@
   >
     <div class="w-2/3 flex flex-col border-opacity-50">
       <label class="swap swap-flip text-3xl">
-        <!-- this hidden checkbox controls the state -->
         <input @click="tips = !tips" type="checkbox" />
 
         <div class="swap-on">😈</div>
@@ -27,7 +26,10 @@
         </svg>
       </span>
 
-      <div class="grid h-20 card bg-base-300 rounded-box place-items-center">
+      <div
+        v-if="words.length > 0"
+        class="grid h-20 card bg-base-300 rounded-box place-items-center"
+      >
         {{ tips ? words[index].word : words[index].des }}
       </div>
 
@@ -41,9 +43,30 @@
         />
       </div>
       <div class="my-4 flex justify-between">
-        <button @click="back" class="btn">上一个</button>
-        <button @click="next" class="btn">下一个</button>
-        <button @click="check" class="btn">检查</button>
+        <button
+          @mousedown="activeSound.play"
+          @mouseup="soundOn.play"
+          @click="back"
+          class="btn"
+        >
+          上一个
+        </button>
+        <button
+          @mousedown="activeSound.play"
+          @mouseup="soundOn.play"
+          @click="next"
+          class="btn"
+        >
+          下一个
+        </button>
+        <button
+          @mousedown="activeSound.play"
+          @mouseup="soundOn.play"
+          @click="check"
+          class="btn"
+        >
+          检查
+        </button>
       </div>
     </div>
   </div>
@@ -52,80 +75,51 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import PopModal from "@/components/PopModal.vue";
-
 import TipsBar from "@/components/TipsBar.vue";
-import axios from "axios";
 import { useCounterStore } from "@/stores/count";
 import { speechVoice } from "@/utils/speechVoice";
 import { showNotification } from "@/utils/notification";
+import { wordsRequest } from "@/utils/request";
+import { dayProcess } from "@/utils/processDay";
+import { useSound } from "@vueuse/sound";
+import popDown from "/pop-down.mp3";
+import popUpOn from "/pop-up-on.mp3";
+import JSConfetti from "js-confetti";
+
+const confetti = new JSConfetti();
+
+function showConfetti() {
+  confetti.addConfetti();
+}
+
+const activeSound = useSound(popDown);
+const soundOn = useSound(popUpOn);
 
 const inputVal = ref("");
 const correct = ref<"success" | "error" | "">("");
 const tips = ref<boolean>(false);
 const index = ref(0);
 const speech = new speechVoice();
-
-const words = ref<
-  {
-    word: string;
-    pron: string;
-    des: string;
-  }[]
->([
-  {
-    word: "hello",
-    pron: "həˈloʊ",
-    des: "",
-  },
+const words = ref<{ word: string; pron: string; des: string }[]>([
+  { word: "", pron: " ", des: "" },
 ]);
-
-onMounted(() => {
-  let beginIndex = useCounterStore().beginIndex;
-  let count = useCounterStore().count;
-  const res = axios.get("/words.json");
-  async function operate() {
-    await res.then((response) => {
-      words.value = JSON.parse(JSON.stringify(response.data)).slice(
-        beginIndex,
-        beginIndex + count
-      );
-    });
-    speech.initSpeech();
-    speech.setText(words.value[index.value].word);
-  }
-  operate();
-
-  if (useCounterStore().lastTime === 0) {
-    useCounterStore().lastTime = new Date().getTime();
-  }
-
-  let diffDay: number = daysBetweenTimestamps(
-    new Date().getTime(),
-    useCounterStore().lastTime
-  );
-  if (diffDay >= 1) {
-    useCounterStore().notified = false;
-    useCounterStore().changeIndex(diffDay);
-    useCounterStore().lastTime = new Date().getTime();
-  }
+onMounted(async () => {
+  words.value = (await wordsRequest()).value;
+  speech.initSpeech();
+  speech.setText(words.value[index.value].word);
+  dayProcess();
 });
-
-function daysBetweenTimestamps(startTime: number, endTime: number) {
-  var differenceInMilliseconds = Math.abs(endTime - startTime);
-  var differenceInDays = Math.floor(
-    differenceInMilliseconds / (1000 * 60 * 60 * 24)
-  );
-
-  return differenceInDays;
-}
 
 function next() {
   if (index.value < useCounterStore().count - 1) {
     index.value++;
   } else {
-    showNotification("今日单词已背完");
-    useCounterStore().notified = true;
-    useCounterStore().lastTime = new Date().getTime();
+    if (useCounterStore().notified != true) {
+      showNotification("今日单词已背完");
+      showConfetti();
+      useCounterStore().notified = true;
+      dayProcess();
+    }
   }
   inputVal.value = "";
   speech.setText(words.value[index.value].word);

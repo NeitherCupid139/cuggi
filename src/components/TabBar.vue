@@ -1,5 +1,5 @@
 <template>
-  <div @touchmove.prevent class="btm-nav">
+  <div @touchmove.prevent class="btm-nav sm:mb-0 mb-5">
     <button
       @click="selected = 0"
       :class="[selected == 0 ? 'active' : '', 'transition-all']"

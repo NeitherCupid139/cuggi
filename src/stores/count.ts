@@ -6,7 +6,7 @@ export const useCounterStore = defineStore(
   () => {
     const firstShow = ref(true);
     const count = ref(20);
-    const lastTime = ref(0);
+    const lastTime = ref();
     const beginIndex = ref(0);
     const notified = ref(false);
 
